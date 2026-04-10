@@ -1,0 +1,907 @@
+:root {
+  /* Core palette */
+  --color-void:        #05050F;   /* near-black background */
+  --color-surface:     #0B0E1A;   /* card background */
+  --color-surface-alt: #0F1220;   /* slightly lighter surface */
+  --color-border:      #1A2040;   /* default border */
+
+  /* Neon accents */
+  --color-cyan:        #00FFD1;   /* primary accent / focus */
+  --color-pink:        #FF2D6B;   /* danger / delete / high priority */
+  --color-yellow:      #FFD600;   /* edit / medium priority */
+  --color-violet:      #7B2FFF;   /* tags / subtle accent */
+
+  /* Text */
+  --color-text-primary:   #E8EDF5;
+  --color-text-secondary: #6B7A9A;
+  --color-text-muted:     #3A4560;
+
+  /* Glow intensities */
+  --glow-cyan:    0 0 8px rgba(0, 255, 209, 0.6), 0 0 24px rgba(0, 255, 209, 0.25);
+  --glow-pink:    0 0 8px rgba(255, 45, 107, 0.6), 0 0 24px rgba(255, 45, 107, 0.25);
+  --glow-yellow:  0 0 8px rgba(255, 214, 0, 0.6),  0 0 24px rgba(255, 214, 0, 0.25);
+
+  /* Priority colours */
+  --priority-high:   var(--color-pink);
+  --priority-medium: var(--color-yellow);
+  --priority-low:    var(--color-cyan);
+
+  /* Spacing scale */
+  --space-xs:  0.35rem;
+  --space-sm:  0.6rem;
+  --space-md:  1rem;
+  --space-lg:  1.4rem;
+  --space-xl:  2rem;
+
+  /* Typography */
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono:    'Share Tech Mono', monospace;
+
+  /* Card dimensions */
+  --card-width:   min(480px, calc(100vw - 2rem));
+  --card-radius:  6px;
+
+  /* Animation speeds */
+  --speed-fast:   0.18s;
+  --speed-normal: 0.35s;
+  --speed-slow:   0.65s;
+  --ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:     cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ──────────────────────────────────────────────────────
+   2. RESET & BASE
+────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-mono);
+  background-color: var(--color-void);
+  color: var(--color-text-primary);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-md);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ──────────────────────────────────────────────────────
+   3. BACKGROUND CANVAS
+────────────────────────────────────────────────────── */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────
+   4. SCANLINES OVERLAY
+   Creates that CRT / anime-terminal atmosphere
+────────────────────────────────────────────────────── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   5. SCENE LAYOUT
+────────────────────────────────────────────────────── */
+.scene {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+/* System label above card */
+.system-label {
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  animation: fade-down var(--speed-slow) var(--ease-out) 0.1s both;
+}
+
+.sys-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-cyan);
+  box-shadow: var(--glow-cyan);
+  animation: blink 2s ease-in-out infinite;
+}
+
+.sys-dot:last-child {
+  animation-delay: 1s;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+/* Scene tagline below card */
+.scene-tagline {
+  font-family: var(--font-display);
+  font-size: 0.52rem;
+  letter-spacing: 0.3em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  animation: fade-up var(--speed-slow) var(--ease-out) 0.8s both;
+}
+
+/* ──────────────────────────────────────────────────────
+   6. THE CARD
+────────────────────────────────────────────────────── */
+article[data-testid="test-todo-card"] {
+  position: relative;
+  width: var(--card-width);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  /* Layered shadows: physical depth + neon glow */
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 209, 0.08),
+    0 0 40px rgba(0, 255, 209, 0.06),
+    0 32px 64px rgba(0, 0, 0, 0.6),
+    0 8px 16px rgba(0, 0, 0, 0.4);
+
+  /* Entry animation — card materialises from below */
+  animation: card-enter var(--speed-slow) var(--ease-out) 0.25s both;
+
+  transition:
+    box-shadow var(--speed-normal) ease,
+    border-color var(--speed-normal) ease;
+}
+
+/* Cyan border glow on hover */
+article[data-testid="test-todo-card"]:hover {
+  border-color: rgba(0, 255, 209, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 209, 0.2),
+    0 0 60px rgba(0, 255, 209, 0.1),
+    0 32px 64px rgba(0, 0, 0, 0.6);
+}
+
+/* Edit state — yellow border flash */
+article[data-testid="test-todo-card"].state--editing {
+  border-color: rgba(255, 214, 0, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(255, 214, 0, 0.3),
+    0 0 60px rgba(255, 214, 0, 0.15),
+    0 32px 64px rgba(0, 0, 0, 0.6);
+}
+
+/* Completed state — muted, dimmed */
+article[data-testid="test-todo-card"].state--completed {
+  border-color: rgba(0, 255, 209, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 209, 0.25),
+    0 0 60px rgba(0, 255, 209, 0.12),
+    0 32px 64px rgba(0, 0, 0, 0.6);
+}
+
+/* Delete animation */
+article[data-testid="test-todo-card"].state--deleting {
+  animation: card-delete var(--speed-slow) var(--ease-out) forwards;
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.96);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes card-delete {
+  0%   { opacity: 1; transform: scale(1)    translateY(0);    filter: blur(0); }
+  30%  { opacity: 1; transform: scale(1.02) translateY(-8px); filter: blur(0); }
+  100% { opacity: 0; transform: scale(0.85) translateY(60px); filter: blur(12px); }
+}
+
+/* ──────────────────────────────────────────────────────
+   7. CORNER BRACKETS (HUD decoration)
+────────────────────────────────────────────────────── */
+.corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  z-index: 5;
+  transition: width var(--speed-normal) ease, height var(--speed-normal) ease;
+}
+
+.corner--tl { top: -1px;    left: -1px;  border-top: 2px solid var(--color-cyan); border-left:  2px solid var(--color-cyan); }
+.corner--tr { top: -1px;    right: -1px; border-top: 2px solid var(--color-cyan); border-right: 2px solid var(--color-cyan); }
+.corner--bl { bottom: -1px; left: -1px;  border-bottom: 2px solid var(--color-cyan); border-left:  2px solid var(--color-cyan); }
+.corner--br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--color-cyan); border-right: 2px solid var(--color-cyan); }
+
+/* Expand brackets on card hover */
+article[data-testid="test-todo-card"]:hover .corner {
+  width: 22px;
+  height: 22px;
+}
+
+/* Edit state — yellow corners */
+article[data-testid="test-todo-card"].state--editing .corner {
+  border-color: var(--color-yellow);
+}
+
+/* Completed state — green corners */
+article[data-testid="test-todo-card"].state--completed .corner {
+  border-color: var(--color-cyan);
+}
+
+/* ──────────────────────────────────────────────────────
+   8. SCAN BEAM
+   Sweeps down the card on a loop — anime HUD effect
+────────────────────────────────────────────────────── */
+.scan-beam {
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  top: 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-cyan),
+    transparent
+  );
+  opacity: 0;
+  z-index: 4;
+  pointer-events: none;
+  animation: scan 5s ease-in-out 1.5s infinite;
+}
+
+@keyframes scan {
+  0%   { top: 0%;   opacity: 0; }
+  5%   { opacity: 0.7; }
+  95%  { opacity: 0.3; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ──────────────────────────────────────────────────────
+   9. BURST CANVAS (particle explosion on complete)
+────────────────────────────────────────────────────── */
+#burst-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: var(--card-radius);
+}
+
+/* ──────────────────────────────────────────────────────
+   10. CARD HEADER
+────────────────────────────────────────────────────── */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  animation: stagger-in var(--speed-slow) var(--ease-out) 0.35s both;
+}
+
+/* Ticket number / ID */
+.card-id {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.card-id__prefix {
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--color-text-muted);
+}
+
+.card-id__number {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-cyan);
+  text-shadow: var(--glow-cyan);
+  /* Number ticks up on load via JS */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Priority badge */
+.priority-badge {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  padding: 0.35em 0.9em 0.35em 0.65em;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  transition: box-shadow var(--speed-normal) ease;
+}
+
+.priority--high   { color: var(--color-pink);   box-shadow: var(--glow-pink); }
+.priority--medium { color: var(--color-yellow);  box-shadow: var(--glow-yellow); }
+.priority--low    { color: var(--color-cyan);    box-shadow: var(--glow-cyan); }
+
+/* Pulsing dot inside priority badge */
+.priority-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.6); }
+}
+
+/* ──────────────────────────────────────────────────────
+   11. TITLE ROW
+────────────────────────────────────────────────────── */
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-lg) var(--space-sm);
+  animation: stagger-in var(--speed-slow) var(--ease-out) 0.45s both;
+}
+
+/* ── Custom Checkbox ── */
+.checkbox-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-top: 4px;
+}
+
+/* Hide native input but keep it accessible */
+.checkbox-wrap input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  margin: 0;
+}
+
+/* Visual checkbox */
+.checkbox-visual {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-text-muted);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color var(--speed-fast) ease,
+    background   var(--speed-fast) ease,
+    box-shadow   var(--speed-fast) ease;
+}
+
+/* Hover state */
+.checkbox-wrap:hover .checkbox-visual {
+  border-color: var(--color-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+/* Checked state */
+.checkbox-wrap input:checked + .checkbox-visual {
+  background: var(--color-cyan);
+  border-color: var(--color-cyan);
+  box-shadow: var(--glow-cyan);
+  animation: stamp-in var(--speed-normal) var(--ease-bounce);
+}
+
+@keyframes stamp-in {
+  0%   { transform: scale(1.4) rotate(-8deg); }
+  60%  { transform: scale(0.9) rotate(3deg); }
+  100% { transform: scale(1)   rotate(0deg); }
+}
+
+/* Checkmark SVG inside */
+.check-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-void);
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  transition: stroke-dashoffset 0.3s ease 0.05s;
+}
+
+.checkbox-wrap input:checked + .checkbox-visual .check-icon {
+  stroke-dashoffset: 0;
+}
+
+/* Focus ring — keyboard navigation */
+.checkbox-wrap input:focus-visible + .checkbox-visual {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 3px;
+  box-shadow: var(--glow-cyan);
+}
+
+/* ── Task Title ── */
+h2[data-testid="test-todo-title"] {
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 3.5vw, 1.25rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+  letter-spacing: 0.02em;
+  transition:
+    color            var(--speed-normal) ease,
+    text-decoration  var(--speed-normal) ease;
+}
+
+/* Strikethrough when completed */
+.state--completed h2[data-testid="test-todo-title"] {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-cyan);
+  text-decoration-thickness: 2px;
+  color: var(--color-text-muted);
+}
+
+/* ──────────────────────────────────────────────────────
+   12. DESCRIPTION
+────────────────────────────────────────────────────── */
+p[data-testid="test-todo-description"] {
+  font-size: 0.8rem;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+  padding: 0 var(--space-lg) var(--space-lg);
+  animation: stagger-in var(--speed-slow) var(--ease-out) 0.5s both;
+}
+
+/* ──────────────────────────────────────────────────────
+   13. CARD DIVIDER
+────────────────────────────────────────────────────── */
+.card-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-lg);
+  margin-bottom: var(--space-sm);
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--color-border));
+}
+
+.divider-line:last-child {
+  background: linear-gradient(to left, transparent, var(--color-border));
+}
+
+.divider-diamond {
+  width: 5px;
+  height: 5px;
+  background: var(--color-cyan);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+  box-shadow: var(--glow-cyan);
+}
+
+/* ──────────────────────────────────────────────────────
+   14. META GRID (due date + time remaining)
+────────────────────────────────────────────────────── */
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  animation: stagger-in var(--speed-slow) var(--ease-out) 0.55s both;
+}
+
+.meta-cell {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.meta-cell:first-child {
+  border-right: 1px solid var(--color-border);
+}
+
+/* Shared label style */
+.meta-label {
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Due date */
+time[data-testid="test-todo-due-date"] {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: 0.05em;
+}
+
+/* Time remaining */
+[data-testid="test-todo-time-remaining"] {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-cyan);
+  transition: color var(--speed-normal) ease;
+}
+
+[data-testid="test-todo-time-remaining"].time--overdue {
+  color: var(--color-pink);
+  animation: overdue-pulse 1.5s ease-in-out infinite;
+}
+
+[data-testid="test-todo-time-remaining"].time--due-soon {
+  color: var(--color-yellow);
+}
+
+@keyframes overdue-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ──────────────────────────────────────────────────────
+   15. STATUS ROW
+────────────────────────────────────────────────────── */
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  animation: stagger-in var(--speed-slow) var(--ease-out) 0.6s both;
+}
+
+.status-badge {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  padding: 0.35em 0.9em 0.35em 0.65em;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  transition:
+    background var(--speed-normal) ease,
+    color      var(--speed-normal) ease,
+    box-shadow var(--speed-normal) ease;
+}
+
+/* Pulsing dot inside status badge */
+.status-badge__pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* Status variants */
+.status--pending {
+  background: rgba(107, 122, 154, 0.15);
+  color: var(--color-text-secondary);
+  border: 1px solid rgba(107, 122, 154, 0.3);
+}
+
+.status--in-progress {
+  background: rgba(0, 255, 209, 0.1);
+  color: var(--color-cyan);
+  border: 1px solid rgba(0, 255, 209, 0.3);
+  box-shadow: var(--glow-cyan);
+}
+
+.status--in-progress .status-badge__pulse {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+.status--done {
+  background: rgba(0, 255, 209, 0.15);
+  color: var(--color-cyan);
+  border: 1px solid rgba(0, 255, 209, 0.4);
+  box-shadow: var(--glow-cyan);
+}
+
+
+/* ──────────────────────────────────────────────────────
+   16. TAGS
+────────────────────────────────────────────────────── */
+.tags-section {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  animation: stagger-in var(--speed-slow) var(--ease-out) 0.65s both;
+}
+
+.tags-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.tag {
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.4em 0.9em;
+  border-radius: 3px;
+  border: 1px solid rgba(123, 47, 255, 0.4);
+  background: rgba(123, 47, 255, 0.1);
+  color: #A78BFA;
+  cursor: default;
+  transition:
+    background   var(--speed-fast) ease,
+    border-color var(--speed-fast) ease,
+    box-shadow   var(--speed-fast) ease,
+    transform    var(--speed-fast) ease;
+}
+
+.tag:hover {
+  background: rgba(123, 47, 255, 0.25);
+  border-color: rgba(123, 47, 255, 0.7);
+  box-shadow: 0 0 8px rgba(123, 47, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Urgent tag — red variant */
+.tag--urgent {
+  border-color: rgba(255, 45, 107, 0.4);
+  background: rgba(255, 45, 107, 0.1);
+  color: #FB7185;
+}
+
+.tag--urgent:hover {
+  background: rgba(255, 45, 107, 0.25);
+  border-color: rgba(255, 45, 107, 0.7);
+  box-shadow: var(--glow-pink);
+}
+
+/* ──────────────────────────────────────────────────────
+   17. ACTION BUTTONS
+────────────────────────────────────────────────────── */
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-surface-alt);
+  animation: stagger-in var(--speed-slow) var(--ease-out) 0.7s both;
+}
+
+.action-btn {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.55em 1.2em 0.55em 1em;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  position: relative;
+  overflow: hidden;
+  transition:
+    background   var(--speed-fast) ease,
+    border-color var(--speed-fast) ease,
+    box-shadow   var(--speed-fast) ease,
+    transform    var(--speed-fast) ease,
+    color        var(--speed-fast) ease;
+}
+
+/* Ripple effect base */
+.action-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity var(--speed-fast) ease;
+  border-radius: inherit;
+}
+
+.action-btn:active::before { opacity: 0.1; }
+
+/* Edit button */
+.action-btn--edit {
+  color: var(--color-yellow);
+  border-color: rgba(255, 214, 0, 0.3);
+  background: rgba(255, 214, 0, 0.06);
+}
+
+.action-btn--edit:hover {
+  background: rgba(255, 214, 0, 0.15);
+  border-color: rgba(255, 214, 0, 0.6);
+  box-shadow: var(--glow-yellow);
+  transform: translateY(-2px);
+}
+
+.action-btn--edit:active { transform: translateY(0); }
+
+/* Delete button */
+.action-btn--delete {
+  color: var(--color-pink);
+  border-color: rgba(255, 45, 107, 0.3);
+  background: rgba(255, 45, 107, 0.06);
+}
+
+.action-btn--delete:hover {
+  background: rgba(255, 45, 107, 0.15);
+  border-color: rgba(255, 45, 107, 0.6);
+  box-shadow: var(--glow-pink);
+  transform: translateY(-2px);
+}
+
+.action-btn--delete:active { transform: translateY(0); }
+
+/* Focus rings — keyboard navigation */
+.action-btn:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 3px;
+}
+
+/* Button icon */
+.btn-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────────────
+   18. SHARED STAGGER ANIMATION (entry reveals)
+────────────────────────────────────────────────────── */
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ──────────────────────────────────────────────────────
+   19. DELETED CONFIRMATION STATE
+────────────────────────────────────────────────────── */
+.delete-confirm {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-xl) 0;
+  animation: fade-up var(--speed-normal) var(--ease-out) both;
+}
+
+.delete-confirm span {
+  color: var(--color-pink);
+}
+
+/* ──────────────────────────────────────────────────────
+   20. RESPONSIVE — Mobile first
+────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  body {
+    padding: var(--space-lg) var(--space-sm);
+  }
+
+  /* Stack meta grid vertically on small screens */
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .meta-cell:first-child {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  h2[data-testid="test-todo-title"] {
+    font-size: 1rem;
+  }
+
+  .card-actions {
+    gap: var(--space-xs);
+  }
+
+  .action-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Larger screens — card floats with more breathing room */
+@media (min-width: 768px) {
+  body {
+    padding: var(--space-xl) var(--space-lg);
+  }
+}
+
+/* Reduce motion — respect OS accessibility setting */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .scan-beam { display: none; }
+}
