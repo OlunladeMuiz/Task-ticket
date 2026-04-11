@@ -44,8 +44,8 @@
     <article
       data-testid="test-todo-card"
       id="todo-card"
-      role="region"
-      aria-label="Task: Redesign onboarding flow"
+      aria-labelledby="task-title"
+      aria-describedby="task-summary"
     >
 
       <!-- Animated corner brackets — decorative HUD frame -->
@@ -72,12 +72,13 @@
           id="priority-badge"
           class="priority-badge priority--high"
           aria-label="Priority: High"
-          role="img"
         >
           <span class="priority-badge__dot" aria-hidden="true"></span>
           High
         </span>
       </header>
+
+      <section class="task-content" aria-labelledby="task-title" aria-describedby="task-summary">
 
       <!-- ── TITLE ROW ── -->
       <div class="title-row">
@@ -88,9 +89,9 @@
             type="checkbox"
             id="complete-toggle"
             data-testid="test-todo-complete-toggle"
-            aria-label="Mark task as complete"
           />
-          <label for="complete-toggle" class="checkbox-visual" aria-hidden="true">
+          <label for="complete-toggle" class="checkbox-visual">
+            <span class="sr-only">Mark task as complete</span>
             <!-- SVG checkmark drawn on check -->
             <svg class="check-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <polyline class="check-line" points="3,10 8,15 17,5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -104,7 +105,7 @@
       </div>
 
       <!-- ── DESCRIPTION ── -->
-      <p data-testid="test-todo-description" class="task-description">
+      <p data-testid="test-todo-description" id="task-summary" class="task-description">
         Review current user drop-off points and propose a new 3-step
         onboarding experience with progress indicators and skip options.
       </p>
@@ -134,6 +135,7 @@
           <span
             data-testid="test-todo-time-remaining"
             id="time-remaining"
+            class="time-remaining"
             aria-live="polite"
             aria-atomic="true"
           >
@@ -151,6 +153,8 @@
           id="status-badge"
           class="status-badge status--in-progress"
           aria-label="Status: In Progress"
+          aria-live="polite"
+          aria-atomic="true"
         >
           <span class="status-badge__pulse" aria-hidden="true"></span>
           In Progress
@@ -158,19 +162,18 @@
       </div>
 
       <!-- ── TAGS ── -->
-      <div class="tags-section">
-        <span class="meta-label">TAGS</span>
+      <section class="tags-section" aria-labelledby="tags-heading">
+        <h3 class="meta-label" id="tags-heading">TAGS</h3>
         <ul
           data-testid="test-todo-tags"
           class="tags-list"
-          role="list"
           aria-label="Task tags"
         >
-          <li data-testid="test-todo-tag-work"   class="tag" role="listitem">Work</li>
-          <li data-testid="test-todo-tag-urgent"  class="tag tag--urgent" role="listitem">Urgent</li>
-          <li data-testid="test-todo-tag-design"  class="tag" role="listitem">Design</li>
+          <li data-testid="test-todo-tag-work" class="tag">Work</li>
+          <li data-testid="test-todo-tag-urgent" class="tag tag--urgent">Urgent</li>
+          <li data-testid="test-todo-tag-design" class="tag">Design</li>
         </ul>
-      </div>
+      </section>
 
       <!-- ── ACTIONS ── -->
       <footer class="card-actions">
