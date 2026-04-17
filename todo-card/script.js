@@ -19,11 +19,11 @@
    1. CONFIG — change behaviour from one place
 ────────────────────────────────────────────────────── */
 const CONFIG = {
-  // Fixed due date for the task
+  // Fallback due date if the semantic <time> element is missing or invalid
   DUE_DATE: new Date('2026-04-18T18:00:00Z'),
 
-  // How often time-remaining updates (ms)
-  TIME_UPDATE_INTERVAL: 60_000,
+  // How often time-remaining updates (ms) — Stage 1A: 30-60 seconds
+  TIME_UPDATE_INTERVAL: 45_000,  // 45 seconds
 
   // Background particle network
   PARTICLE_COUNT: 55,
@@ -40,6 +40,9 @@ const CONFIG = {
   // Ticket number count-up animation
   TICKER_TARGET: 42,
   TICKER_DURATION: 1200,            // ms
+  
+  // Expand/collapse threshold (characters)
+  EXPAND_THRESHOLD: 150,
 };
 
 
@@ -232,12 +235,16 @@ class BurstEffect {
 ────────────────────────────────────────────────────── */
 class TimeManager {
   /**
-   * Calculates friendly time-remaining text from CONFIG.DUE_DATE
+   * Calculates friendly time-remaining text from the task due date
    * and updates the DOM element every TIME_UPDATE_INTERVAL ms.
+   * Stage 1A: Enhanced with overdue indicator and stopped updates when completed.
    */
-  constructor(timeEl) {
+  constructor(timeEl, dueDate, overdueIndicatorEl = null) {
     this.el         = timeEl;
+    this.dueDate    = dueDate;
+    this.overdueIndicatorEl = overdueIndicatorEl;
     this.intervalId = null;
+    this.isCompleted = false;
   }
 
   start() {
@@ -249,10 +256,40 @@ class TimeManager {
     clearInterval(this.intervalId);
   }
 
+  markCompleted() {
+    this.isCompleted = true;
+    this.stop();
+    this.el.textContent = 'Completed';
+    this.el.className = 'time-remaining';
+    if (this.overdueIndicatorEl) {
+      this.overdueIndicatorEl.style.display = 'none';
+    }
+  }
+
+  markActive() {
+    this.isCompleted = false;
+    this.start();
+  }
+
   _update() {
+    if (this.isCompleted) return;
+    
     const { text, state } = this._calculate();
     this.el.textContent = text;
-    this.el.className   = state ? `time--${state}` : '';
+    this.el.className = 'time-remaining';
+
+    if (state) {
+      this.el.classList.add(`time--${state}`);
+    }
+
+    // Update overdue indicator
+    if (this.overdueIndicatorEl) {
+      if (state === 'overdue') {
+        this.overdueIndicatorEl.style.display = 'inline-flex';
+      } else {
+        this.overdueIndicatorEl.style.display = 'none';
+      }
+    }
   }
 
   /**
@@ -263,7 +300,7 @@ class TimeManager {
    */
   _calculate() {
     const now     = Date.now();
-    const diff    = CONFIG.DUE_DATE.getTime() - now;
+    const diff    = this.dueDate.getTime() - now;
     const abs     = Math.abs(diff);
 
     const MINUTE  = 60 * 1000;
@@ -307,17 +344,21 @@ class CardState {
   /**
    * Handles the visual transformation when a task
    * is marked complete or reverted.
+   * Stage 1A: Manages status-checkbox-dropdown synchronization
    */
-  constructor({ card, toggle, statusBadge, burstEffect }) {
-    this.card        = card;
-    this.toggle      = toggle;
-    this.statusBadge = statusBadge;
-    this.burst       = burstEffect;
-    this.isComplete  = false;
+  constructor({ card, toggle, statusBadge, burstEffect, statusControl, timeManager }) {
+    this.card           = card;
+    this.toggle         = toggle;
+    this.statusBadge    = statusBadge;
+    this.statusControl  = statusControl;
+    this.burst          = burstEffect;
+    this.timeManager    = timeManager;
+    this.isComplete     = false;
   }
 
   bindEvents() {
-    this.toggle.addEventListener('change', () => this._onToggle());
+    this.toggle.addEventListener('change', () => this._onCheckboxChange());
+    this.statusControl.addEventListener('change', () => this._onStatusControlChange());
   }
 
   _setStatus(label, variantClass) {
@@ -327,7 +368,7 @@ class CardState {
       `<span class="status-badge__pulse" aria-hidden="true"></span>${label}`;
   }
 
-  _onToggle() {
+  _onCheckboxChange() {
     this.isComplete = this.toggle.checked;
 
     if (this.isComplete) {
@@ -337,12 +378,37 @@ class CardState {
     }
   }
 
+  _onStatusControlChange() {
+    const selectedStatus = this.statusControl.value;
+
+    if (selectedStatus === 'Done') {
+      this.toggle.checked = true;
+      this.isComplete = true;
+      this._markDone();
+    } else if (selectedStatus === 'Pending' || selectedStatus === 'In Progress') {
+      this.toggle.checked = false;
+      this.isComplete = false;
+      
+      if (selectedStatus === 'Pending') {
+        this._markPending();
+      } else {
+        this._markActive();
+      }
+    }
+  }
+
   _markDone() {
     this.card.classList.add('state--completed');
     this.card.classList.remove('state--editing');
 
-    this.statusBadge.textContent = '●  Done';
     this._setStatus('Done', 'status--done');
+    this.statusControl.value = 'Done';
+    this.toggle.checked = true;
+
+    // Stop time updates when completed
+    if (this.timeManager) {
+      this.timeManager.markCompleted();
+    }
 
     // Fire the particle burst
     this.burst.fire();
@@ -353,66 +419,247 @@ class CardState {
   _markActive() {
     this.card.classList.remove('state--completed');
 
-    this.statusBadge.textContent = '● In Progress';
     this._setStatus('In Progress', 'status--in-progress');
+    this.statusControl.value = 'In Progress';
+    this.toggle.checked = false;
+
+    // Resume time updates
+    if (this.timeManager) {
+      this.timeManager.markActive();
+    }
 
     console.log('🔄 Task reverted to In Progress');
+  }
+
+  _markPending() {
+    this.card.classList.remove('state--completed');
+
+    this._setStatus('Pending', 'status--pending');
+    this.statusControl.value = 'Pending';
+    this.toggle.checked = false;
+
+    // Resume time updates
+    if (this.timeManager) {
+      this.timeManager.markActive();
+    }
+
+    console.log('⏳ Task status: Pending');
   }
 }
 
 
 /* ──────────────────────────────────────────────────────
-   6. INTERACTIONS — edit button, delete button, glitch
+   6. EDIT MANAGER — Stage 1A: handle edit mode
+────────────────────────────────────────────────────── */
+class EditManager {
+  /**
+   * Manages the edit form visibility and data handling.
+   * Saves/cancels edits and maintains focus management.
+   */
+  constructor({ card, editBtn, editForm, saveBtn, cancelBtn, taskDisplay }) {
+    this.card = card;
+    this.editBtn = editBtn;
+    this.editForm = editForm;
+    this.saveBtn = saveBtn;
+    this.cancelBtn = cancelBtn;
+    this.taskDisplay = taskDisplay;
+    this.isEditing = false;
+    this.previousFocus = null;
+  }
+
+  bindEvents() {
+    this.editBtn.addEventListener('click', () => this._enterEditMode());
+    this.saveBtn.addEventListener('click', () => this._saveChanges());
+    this.cancelBtn.addEventListener('click', () => this._exitEditMode());
+  }
+
+  _enterEditMode() {
+    this.isEditing = true;
+    this.previousFocus = document.activeElement;
+    
+    // Populate form with current values
+    this._populateFormFromCard();
+    
+    // Show edit form
+    this.card.classList.add('state--editing');
+    this.editForm.setAttribute('aria-hidden', 'false');
+    
+    // Focus on first input
+    const titleInput = this.editForm.querySelector('[data-testid="test-todo-edit-title-input"]');
+    if (titleInput) {
+      setTimeout(() => titleInput.focus(), 100);
+    }
+
+    console.log('✏️ Entered edit mode');
+  }
+
+  _populateFormFromCard() {
+    const titleEl = this.card.querySelector('[data-testid="test-todo-title"]');
+    const descEl = this.card.querySelector('[data-testid="test-todo-description"]');
+    const priorityEl = this.card.querySelector('[data-testid="test-todo-priority"]');
+    const dueDateEl = this.card.querySelector('[data-testid="test-todo-due-date"]');
+
+    const titleInput = this.editForm.querySelector('[data-testid="test-todo-edit-title-input"]');
+    const descInput = this.editForm.querySelector('[data-testid="test-todo-edit-description-input"]');
+    const prioritySelect = this.editForm.querySelector('[data-testid="test-todo-edit-priority-select"]');
+    const dueDateInput = this.editForm.querySelector('[data-testid="test-todo-edit-due-date-input"]');
+
+    if (titleInput && titleEl) titleInput.value = titleEl.textContent.trim();
+    if (descInput && descEl) descInput.value = descEl.textContent.trim();
+    if (prioritySelect && priorityEl) {
+      const priorityText = priorityEl.textContent.trim().split('\n')[0];
+      prioritySelect.value = priorityText;
+    }
+    if (dueDateInput && dueDateEl) {
+      const datetime = dueDateEl.getAttribute('datetime');
+      if (datetime) {
+        const date = new Date(datetime);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        dueDateInput.value = `${year}-${month}-${day}`;
+      }
+    }
+  }
+
+  _saveChanges() {
+    const titleInput = this.editForm.querySelector('[data-testid="test-todo-edit-title-input"]');
+    const descInput = this.editForm.querySelector('[data-testid="test-todo-edit-description-input"]');
+    const prioritySelect = this.editForm.querySelector('[data-testid="test-todo-edit-priority-select"]');
+    const dueDateInput = this.editForm.querySelector('[data-testid="test-todo-edit-due-date-input"]');
+
+    const titleEl = this.card.querySelector('[data-testid="test-todo-title"]');
+    const descEl = this.card.querySelector('[data-testid="test-todo-description"]');
+    const priorityEl = this.card.querySelector('[data-testid="test-todo-priority"]');
+    const priorityIndicator = this.card.querySelector('[data-testid="test-todo-priority-indicator"]');
+    const dueDateEl = this.card.querySelector('[data-testid="test-todo-due-date"]');
+    const priorityBadge = this.card.querySelector('.priority-badge');
+
+    // Update title
+    if (titleEl && titleInput) {
+      titleEl.textContent = titleInput.value || 'Untitled';
+    }
+
+    // Update description
+    if (descEl && descInput) {
+      descEl.textContent = descInput.value || 'No description';
+      descEl.setAttribute('data-collapsed', 'true');
+    }
+
+    // Update priority
+    if (prioritySelect && priorityEl) {
+      const newPriority = prioritySelect.value;
+      const priorityClass = `priority--${newPriority.toLowerCase()}`;
+      
+      // Update priority badge
+      priorityBadge.className = `priority-badge ${priorityClass}`;
+      priorityBadge.setAttribute('aria-label', `Priority: ${newPriority}`);
+      priorityBadge.innerHTML = `<span class="priority-badge__dot" data-testid="test-todo-priority-indicator" aria-hidden="true"></span>${newPriority}`;
+
+      // Also update the hidden text in priority element if needed
+      priorityEl.textContent = newPriority;
+    }
+
+    // Update due date
+    if (dueDateInput && dueDateEl) {
+      if (dueDateInput.value) {
+        const date = new Date(dueDateInput.value);
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        const formatted = date.toLocaleDateString('en-US', options);
+        dueDateEl.setAttribute('datetime', date.toISOString());
+        dueDateEl.textContent = `Due ${formatted}`;
+      }
+    }
+
+    this._exitEditMode();
+    console.log('💾 Changes saved');
+  }
+
+  _exitEditMode() {
+    this.isEditing = false;
+    this.card.classList.remove('state--editing');
+    this.editForm.setAttribute('aria-hidden', 'true');
+
+    // Return focus to edit button
+    if (this.previousFocus === this.editBtn || !this.previousFocus) {
+      this.editBtn.focus();
+    } else {
+      this.previousFocus.focus();
+    }
+
+    console.log('✏️ Exited edit mode');
+  }
+}
+
+
+/* ──────────────────────────────────────────────────────
+   6b. EXPAND MANAGER — Stage 1A: expand/collapse description
+────────────────────────────────────────────────────── */
+class ExpandManager {
+  /**
+   * Manages the expand/collapse behavior for long descriptions.
+   * Automatically collapses if description exceeds EXPAND_THRESHOLD.
+   */
+  constructor({ expandBtn, descEl, collapsibleSection }) {
+    this.expandBtn = expandBtn;
+    this.descEl = descEl;
+    this.collapsibleSection = collapsibleSection;
+    this.isExpanded = false;
+  }
+
+  init() {
+    // Check if description needs collapsing
+    const text = this.descEl.textContent.trim();
+    
+    if (text.length > CONFIG.EXPAND_THRESHOLD) {
+      this._setupCollapse();
+      this.expandBtn.style.display = 'inline-flex';
+    } else {
+      this.expandBtn.style.display = 'none';
+      this.descEl.setAttribute('data-collapsed', 'false');
+    }
+
+    this.expandBtn.addEventListener('click', () => this._toggle());
+  }
+
+  _setupCollapse() {
+    this.descEl.setAttribute('data-collapsed', 'true');
+    this.isExpanded = false;
+    this.expandBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  _toggle() {
+    this.isExpanded = !this.isExpanded;
+
+    if (this.isExpanded) {
+      this.descEl.setAttribute('data-collapsed', 'false');
+      this.expandBtn.setAttribute('aria-expanded', 'true');
+      this.expandBtn.querySelector('.expand-toggle__text').textContent = 'Less';
+    } else {
+      this.descEl.setAttribute('data-collapsed', 'true');
+      this.expandBtn.setAttribute('aria-expanded', 'false');
+      this.expandBtn.querySelector('.expand-toggle__text').textContent = 'More';
+    }
+  }
+}
+
+
+/* ──────────────────────────────────────────────────────
+   7. INTERACTIONS — edit button, delete button, glitch
 ────────────────────────────────────────────────────── */
 class Interactions {
   /**
-   * Handles Edit and Delete button behaviour,
-   * including animated feedback.
+   * Handles Delete button behaviour and glitch effects.
+   * Edit is now handled by EditManager.
    */
-  constructor({ card, editBtn, deleteBtn, scene }) {
+  constructor({ card, deleteBtn, scene }) {
     this.card      = card;
-    this.editBtn   = editBtn;
     this.deleteBtn = deleteBtn;
     this.scene     = scene;
   }
 
   bindEvents() {
-    this.editBtn.addEventListener('click',   () => this._onEdit());
     this.deleteBtn.addEventListener('click', () => this._onDelete());
-  }
-
-  _onEdit() {
-    console.log('✏️  Edit clicked');
-
-    // Add yellow glow state briefly
-    this.card.classList.add('state--editing');
-
-    // Apply a short glitch flicker on the card
-    this._glitch();
-
-    // Remove edit state after 800ms
-    setTimeout(() => {
-      this.card.classList.remove('state--editing');
-    }, 800);
-  }
-
-  /**
-   * Quick RGB-split glitch — achieved via a
-   * fast CSS filter sequence using JS.
-   */
-  _glitch() {
-    const steps = [
-      { filter: 'hue-rotate(90deg) brightness(1.3)',  delay: 0   },
-      { filter: 'hue-rotate(-90deg) brightness(0.8)', delay: 80  },
-      { filter: 'hue-rotate(30deg) brightness(1.1)',  delay: 150 },
-      { filter: 'none',                               delay: 220 },
-    ];
-
-    steps.forEach(({ filter, delay }) => {
-      setTimeout(() => {
-        this.card.style.filter = filter;
-      }, delay);
-    });
   }
 
   _onDelete() {
@@ -433,7 +680,7 @@ class Interactions {
 
 
 /* ──────────────────────────────────────────────────────
-   7. TICKER ANIMATION — ticket number counts up on load
+   8. TICKER ANIMATION — ticket number counts up on load
 ────────────────────────────────────────────────────── */
 function animateTicker(el) {
   /**
@@ -463,7 +710,7 @@ function animateTicker(el) {
 
 
 /* ──────────────────────────────────────────────────────
-   8. INIT — boot everything when DOM is ready
+   9. INIT — boot everything when DOM is ready
 ────────────────────────────────────────────────────── */
 function init() {
   // ── Grab DOM elements ──
@@ -473,16 +720,29 @@ function init() {
   const scene       = document.querySelector('.scene');
   const toggle      = document.getElementById('complete-toggle');
   const statusBadge = document.getElementById('status-badge');
+  const statusControl = document.getElementById('status-control');
   const timeEl      = document.getElementById('time-remaining');
+  const overdueIndicatorEl = document.getElementById('overdue-indicator');
+  const dueDateEl   = document.querySelector('[data-testid="test-todo-due-date"]');
   const editBtn     = document.getElementById('edit-btn');
+  const editForm    = document.getElementById('edit-form');
+  const saveBtn     = document.getElementById('save-btn');
+  const cancelBtn   = document.getElementById('cancel-btn');
+  const taskDisplay = document.getElementById('task-display');
   const deleteBtn   = document.getElementById('delete-btn');
   const tktNumber   = document.getElementById('tkt-number');
+  const expandBtn   = document.getElementById('expand-toggle');
+  const descEl      = document.querySelector('[data-testid="test-todo-description"]');
+  const collapsibleSection = document.getElementById('collapsible-section');
 
   // Guard: bail early if critical elements are missing
-  if (!card || !toggle) {
+  if (!card || !toggle || !statusBadge || !timeEl || !dueDateEl || !editBtn || !deleteBtn || !tktNumber) {
     console.warn('Task Ticket: required DOM elements not found.');
     return;
   }
+
+  const dueDate = new Date(dueDateEl.getAttribute('datetime') || CONFIG.DUE_DATE.toISOString());
+  const resolvedDueDate = Number.isNaN(dueDate.getTime()) ? CONFIG.DUE_DATE : dueDate;
 
   // ── Boot modules ──
 
@@ -492,19 +752,45 @@ function init() {
   // 2. Particle burst effect (fires on complete)
   const burst = new BurstEffect(burstCanvas);
 
-  // 3. Live countdown timer
-  const timer = new TimeManager(timeEl);
+  // 3. Live countdown timer (with overdue indicator)
+  const timer = new TimeManager(timeEl, resolvedDueDate, overdueIndicatorEl);
   timer.start();
 
-  // 4. Checkbox / completion state
-  const cardState = new CardState({ card, toggle, statusBadge, burstEffect: burst });
+  // 4. Checkbox / completion state (with status control and timer)
+  const cardState = new CardState({ 
+    card, 
+    toggle, 
+    statusBadge, 
+    burstEffect: burst,
+    statusControl,
+    timeManager: timer
+  });
   cardState.bindEvents();
 
-  // 5. Edit + Delete interactions
-  const interactions = new Interactions({ card, editBtn, deleteBtn, scene });
+  // 5. Edit mode management — Stage 1A
+  const editManager = new EditManager({
+    card,
+    editBtn,
+    editForm,
+    saveBtn,
+    cancelBtn,
+    taskDisplay
+  });
+  editManager.bindEvents();
+
+  // 6. Expand/collapse description — Stage 1A
+  const expandManager = new ExpandManager({
+    expandBtn,
+    descEl,
+    collapsibleSection
+  });
+  expandManager.init();
+
+  // 7. Delete interactions
+  const interactions = new Interactions({ card, deleteBtn, scene });
   interactions.bindEvents();
 
-  // 6. Ticket number count-up on load
+  // 8. Ticket number count-up on load
   animateTicker(tktNumber);
 }
 

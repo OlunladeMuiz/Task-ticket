@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Ticket - Mission Control</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <main class="scene">
+    <div class="system-label" aria-hidden="true">
+      <span class="sys-dot"></span>
+      MISSION CONTROL / TASK INTERFACE v2.4
+      <span class="sys-dot"></span>
+    </div>
+
+    <article
+      data-testid="test-todo-card"
+      id="todo-card"
+      aria-labelledby="task-title"
+      aria-describedby="task-summary"
+    >
+      <span class="corner corner--tl" aria-hidden="true"></span>
+      <span class="corner corner--tr" aria-hidden="true"></span>
+      <span class="corner corner--bl" aria-hidden="true"></span>
+      <span class="corner corner--br" aria-hidden="true"></span>
+
+      <div class="scan-beam" aria-hidden="true"></div>
+      <canvas id="burst-canvas" aria-hidden="true"></canvas>
+
+      <header class="card-header">
+        <div class="card-id">
+          <span class="card-id__prefix">TKT</span>
+          <span class="card-id__number" id="tkt-number">0042</span>
+        </div>
+
+        <span
+          data-testid="test-todo-priority"
+          id="priority-badge"
+          class="priority-badge priority--high"
+          aria-label="Priority: High"
+        >
+          <span 
+            class="priority-badge__dot" 
+            data-testid="test-todo-priority-indicator"
+            aria-hidden="true"
+          ></span>
+          High
+        </span>
+      </header>
+
+      <section
+        class="task-content"
+        aria-labelledby="task-title"
+        aria-describedby="task-summary"
+      >
+        <!-- EDIT FORM (Hidden by default) -->
+        <div 
+          data-testid="test-todo-edit-form" 
+          id="edit-form" 
+          class="edit-form" 
+          aria-hidden="true"
+          role="dialog"
+          aria-labelledby="edit-form-title"
+        >
+          <h3 id="edit-form-title" class="edit-form__title">Edit Task</h3>
+          
+          <div class="edit-form__group">
+            <label for="edit-title-input" class="edit-form__label">Title</label>
+            <input
+              type="text"
+              id="edit-title-input"
+              data-testid="test-todo-edit-title-input"
+              class="edit-form__input"
+              aria-label="Task title"
+              placeholder="Enter task title"
+            />
+          </div>
+
+          <div class="edit-form__group">
+            <label for="edit-description-input" class="edit-form__label">Description</label>
+            <textarea
+              id="edit-description-input"
+              data-testid="test-todo-edit-description-input"
+              class="edit-form__textarea"
+              aria-label="Task description"
+              placeholder="Enter task description"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="edit-form__group">
+            <label for="edit-priority-select" class="edit-form__label">Priority</label>
+            <select
+              id="edit-priority-select"
+              data-testid="test-todo-edit-priority-select"
+              class="edit-form__select"
+              aria-label="Task priority"
+            >
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+
+          <div class="edit-form__group">
+            <label for="edit-due-date-input" class="edit-form__label">Due Date</label>
+            <input
+              type="date"
+              id="edit-due-date-input"
+              data-testid="test-todo-edit-due-date-input"
+              class="edit-form__input"
+              aria-label="Task due date"
+            />
+          </div>
+
+          <div class="edit-form__group edit-form__group--actions">
+            <button
+              type="button"
+              data-testid="test-todo-save-button"
+              id="save-btn"
+              class="edit-form__btn edit-form__btn--save"
+              aria-label="Save changes"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              data-testid="test-todo-cancel-button"
+              id="cancel-btn"
+              class="edit-form__btn edit-form__btn--cancel"
+              aria-label="Cancel editing"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- TASK DISPLAY (Shown when not editing) -->
+        <div id="task-display" class="task-display">
+          <div class="title-row">
+            <div class="checkbox-wrap">
+              <input
+                type="checkbox"
+                id="complete-toggle"
+                data-testid="test-todo-complete-toggle"
+              />
+              <label for="complete-toggle" class="sr-only">Mark task as complete</label>
+            </div>
+
+            <h2 data-testid="test-todo-title" id="task-title">
+              Olunlade's Frontend Task
+            </h2>
+          </div>
+
+          <!-- Description with Expand/Collapse -->
+          <div class="description-container">
+            <p 
+              data-testid="test-todo-description" 
+              id="task-summary" 
+              class="task-description"
+              data-collapsed="true"
+            >
+              Welcome to my Task card , this is my first project for the internship
+              looking forward to the major tasks ahead, thanks for visiting
+            </p>
+            <button
+              type="button"
+              id="expand-toggle"
+              data-testid="test-todo-expand-toggle"
+              class="expand-toggle"
+              aria-expanded="false"
+              aria-controls="task-summary"
+              aria-label="Expand full description"
+            >
+              <span class="expand-toggle__text">More</span>
+              <svg class="expand-toggle__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Collapsible Section -->
+          <div
+            data-testid="test-todo-collapsible-section"
+            id="collapsible-section"
+            class="collapsible-section"
+            style="display: none;"
+          >
+            <!-- Extra content can be added here -->
+          </div>
+        </div>
+        <!-- END TASK DISPLAY -->
+
+        <div class="card-divider" aria-hidden="true">
+          <div class="divider-line"></div>
+          <div class="divider-diamond"></div>
+          <div class="divider-line"></div>
+        </div>
+
+        <section class="task-details" aria-label="Task details">
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <span class="meta-label">DEADLINE</span>
+              <time
+                data-testid="test-todo-due-date"
+                datetime="2026-04-18T18:00:00Z"
+              >
+                Due Apr 18, 2026
+              </time>
+            </div>
+
+            <div class="meta-cell">
+              <span class="meta-label">TIME REMAINING</span>
+              <div class="time-remaining-wrapper">
+                <span
+                  data-testid="test-todo-time-remaining"
+                  id="time-remaining"
+                  class="time-remaining"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  Calculating...
+                </span>
+                <span
+                  data-testid="test-todo-overdue-indicator"
+                  id="overdue-indicator"
+                  class="overdue-indicator"
+                  aria-hidden="true"
+                  style="display: none;"
+                >
+                  🚨 OVERDUE
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="status-row">
+            <span class="meta-label">STATUS</span>
+            <select
+              data-testid="test-todo-status-control"
+              id="status-control"
+              class="status-control"
+              aria-label="Task status"
+            >
+              <option value="Pending">Pending</option>
+              <option value="In Progress" selected>In Progress</option>
+              <option value="Done">Done</option>
+            </select>
+            <span
+              data-testid="test-todo-status"
+              id="status-badge"
+              class="status-badge status--in-progress"
+              aria-label="Status: In Progress"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <span class="status-badge__pulse" aria-hidden="true"></span>
+              In Progress
+            </span>
+          </div>
+        </section>
+
+        <section class="tags-section" aria-labelledby="tags-heading">
+          <h3 class="meta-label" id="tags-heading">TAGS</h3>
+          <ul
+            data-testid="test-todo-tags"
+            class="tags-list"
+            aria-label="Task tags"
+          >
+            <li data-testid="test-todo-tag-work" class="tag">Work</li>
+            <li data-testid="test-todo-tag-urgent" class="tag tag--urgent">Urgent</li>
+            <li data-testid="test-todo-tag-design" class="tag">Design</li>
+          </ul>
+        </section>
+      </section>
+
+      <footer class="card-actions" aria-label="Task actions">
+        <button
+          type="button"
+          data-testid="test-todo-edit-button"
+          id="edit-btn"
+          class="action-btn action-btn--edit"
+          aria-label="Edit task"
+        >
+          <svg class="btn-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path
+              d="M14.5 2.5L17.5 5.5L7 16H4V13L14.5 2.5Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+            <path d="M12 5L15 8" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+          <span>Edit</span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="test-todo-delete-button"
+          id="delete-btn"
+          class="action-btn action-btn--delete"
+          aria-label="Delete task"
+        >
+          <svg class="btn-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M3 5H17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            <path
+              d="M7 5V3.5A.5.5 0 017.5 3h5a.5.5 0 01.5.5V5"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <path
+              d="M4.5 5L5.6 16.1A1 1 0 006.6 17h6.8a1 1 0 001-0.9L15.5 5"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M8.5 9V13.5M11.5 9V13.5"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span>Delete</span>
+        </button>
+      </footer>
+    </article>
+
+    <p class="scene-tagline" aria-hidden="true">FRONTEND WIZARDS / STAGE 0</p>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Card | Frontend Wizards Stage 1B</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-testid="test-page-body">
+  <main class="page-shell" data-testid="test-profile-page">
+    <article
+      class="profile-card"
+      data-testid="test-profile-card"
+      aria-labelledby="profile-name"
+      aria-describedby="profile-bio"
+    >
+      <header class="profile-card__header" data-testid="test-profile-header">
+        <figure class="profile-card__figure" data-testid="test-profile-figure">
+          <img
+            class="profile-card__avatar"
+            data-testid="test-user-avatar"
+            id="profile-avatar"
+            src="/profile-card/images/Gemini_Generated_Image_dqmy8ldqmy8ldqmy.png"
+            alt="Portrait of Olunlade Abdulmuiz wearing a blue shirt and looking at the camera"
+          />
+          <figcaption
+            class="profile-card__caption"
+            data-testid="test-profile-avatar-caption"
+          >
+            Frontend engineer focused on accessible and resilient user interfaces.
+          </figcaption>
+        </figure>
+
+        <div class="profile-card__intro" data-testid="test-profile-intro">
+          <p class="profile-card__eyebrow" data-testid="test-profile-role">
+            Frontend Engineer
+          </p>
+          <h1 class="profile-card__name" data-testid="test-user-name" id="profile-name">
+            Olunlade Abdulmuiz
+          </h1>
+          <p class="profile-card__bio" data-testid="test-user-bio" id="profile-bio">
+            I build responsive, accessible interfaces with clean semantics, strong
+            performance habits, and a design eye that keeps complex products easy to use.
+          </p>
+
+          <div class="profile-card__details" data-testid="test-profile-details">
+            <p class="profile-card__detail" data-testid="test-profile-location">
+              Based in Lagos, Nigeria
+            </p>
+            <p class="profile-card__detail" data-testid="test-profile-availability">
+              Available for internships, freelance work, and frontend collaborations
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <section
+        class="profile-card__meta"
+        data-testid="test-profile-meta"
+        aria-labelledby="profile-meta-title"
+      >
+        <h2 class="section-title" data-testid="test-profile-meta-title" id="profile-meta-title">
+          Quick Snapshot
+        </h2>
+
+        <div class="profile-card__meta-grid" data-testid="test-profile-meta-grid">
+          <div class="info-tile" data-testid="test-profile-time-panel">
+            <p class="info-tile__label" data-testid="test-profile-time-label">
+              Current epoch time
+            </p>
+            <time
+              class="info-tile__value"
+              data-testid="test-user-time"
+              id="user-time"
+              aria-live="polite"
+              aria-atomic="true"
+              datetime=""
+            >
+              0
+            </time>
+          </div>
+
+          <div class="info-tile" data-testid="test-profile-focus-panel">
+            <p class="info-tile__label" data-testid="test-profile-focus-label">
+              Current focus
+            </p>
+            <p class="info-tile__value info-tile__value--text" data-testid="test-profile-focus">
+              Semantic HTML, CSS layout systems, and accessible interaction design
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <nav
+        class="profile-card__social"
+        data-testid="test-user-social-links"
+        aria-label="Social links"
+      >
+        <h2 class="section-title" data-testid="test-profile-social-title">
+          Social Links
+        </h2>
+
+        <ul class="social-list" data-testid="test-profile-social-list">
+          <li class="social-list__item" data-testid="test-profile-social-item-github">
+            <a
+              class="social-link"
+              data-testid="test-user-social-github"
+              href="https://github.com/OlunladeMuiz"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit Olunlade Abdulmuiz on GitHub, opens in a new tab"
+            >
+              <span class="social-link__network" data-testid="test-profile-social-github-network">
+                GitHub
+              </span>
+              <span class="social-link__handle" data-testid="test-profile-social-github-handle">
+                @OlunladeMuiz
+              </span>
+            </a>
+          </li>
+
+          <li class="social-list__item" data-testid="test-profile-social-item-linkedin">
+            <a
+              class="social-link"
+              data-testid="test-user-social-linkedin"
+              href="https://www.linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit LinkedIn profile, opens in a new tab"
+            >
+              <span class="social-link__network" data-testid="test-profile-social-linkedin-network">
+                LinkedIn
+              </span>
+              <span class="social-link__handle" data-testid="test-profile-social-linkedin-handle">
+                Professional updates
+              </span>
+            </a>
+          </li>
+
+          <li class="social-list__item" data-testid="test-profile-social-item-twitter">
+            <a
+              class="social-link"
+              data-testid="test-user-social-twitter"
+              href="https://x.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit X profile, opens in a new tab"
+            >
+              <span class="social-link__network" data-testid="test-profile-social-twitter-network">
+                X
+              </span>
+              <span class="social-link__handle" data-testid="test-profile-social-twitter-handle">
+                Frontend notes and build logs
+              </span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="profile-card__lists" data-testid="test-profile-lists">
+        <section
+          class="list-panel"
+          data-testid="test-profile-hobbies-section"
+          aria-labelledby="profile-hobbies-title"
+        >
+          <h2
+            class="section-title"
+            data-testid="test-profile-hobbies-title"
+            id="profile-hobbies-title"
+          >
+            Hobbies
+          </h2>
+
+          <ul class="tag-list" data-testid="test-user-hobbies">
+            <li class="tag-list__item" data-testid="test-profile-hobby-reading">
+              Reading design case studies
+            </li>
+            <li class="tag-list__item" data-testid="test-profile-hobby-side-projects">
+              Building side projects
+            </li>
+            <li class="tag-list__item" data-testid="test-profile-hobby-photography">
+              Street photography walks
+            </li>
+            <li class="tag-list__item" data-testid="test-profile-hobby-table-tennis">
+              Playing table tennis
+            </li>
+          </ul>
+        </section>
+
+        <section
+          class="list-panel list-panel--alert"
+          data-testid="test-profile-dislikes-section"
+          aria-labelledby="profile-dislikes-title"
+        >
+          <h2
+            class="section-title"
+            data-testid="test-profile-dislikes-title"
+            id="profile-dislikes-title"
+          >
+            Dislikes
+          </h2>
+
+          <ul class="tag-list" data-testid="test-user-dislikes">
+            <li class="tag-list__item" data-testid="test-profile-dislike-poor-accessibility">
+              Poor accessibility practices
+            </li>
+            <li class="tag-list__item" data-testid="test-profile-dislike-vague-feedback">
+              Vague product feedback
+            </li>
+            <li class="tag-list__item" data-testid="test-profile-dislike-slow-feedback-loops">
+              Slow feedback loops
+            </li>
+            <li class="tag-list__item" data-testid="test-profile-dislike-unnecessary-complexity">
+              Unnecessary interface complexity
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <footer class="profile-card__footer" data-testid="test-profile-footer">
+        <p class="profile-card__footer-text" data-testid="test-profile-footer-text">
+          Keyboard-friendly links, semantic structure, and responsive layout are all built
+          into this card for straightforward testing.
+        </p>
+      </footer>
+    </article>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
