@@ -88,7 +88,10 @@ body {
   white-space: nowrap;
   border: 0;
 }
+<<<<<<< HEAD:todo-card/style.css
 
+=======
+>>>>>>> 8603768ed00592e91cb75aa6dc04b9eb8def0dd4:style.css
 /* ──────────────────────────────────────────────────────
    3. BACKGROUND CANVAS
 ────────────────────────────────────────────────────── */
@@ -972,6 +975,7 @@ time[data-testid="test-todo-due-date"] {
 
   .scan-beam { display: none; }
 }
+<<<<<<< HEAD:todo-card/style.css
 
 /* ──────────────────────────────────────────────────────
    21. EDIT FORM — Stage 1A
@@ -1336,3 +1340,5 @@ article[data-testid="test-todo-card"].state--completed [data-testid="test-todo-t
     min-width: auto;
   }
 }
+=======
+>>>>>>> 8603768ed00592e91cb75aa6dc04b9eb8def0dd4:style.css
