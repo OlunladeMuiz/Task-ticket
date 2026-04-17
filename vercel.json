@@ -1,0 +1,14 @@
+{
+  "buildCommand": "echo 'Static site, no build needed'",
+  "outputDirectory": ".",
+  "rewrites": [
+    {
+      "source": "/todo-card",
+      "destination": "/todo-card/index.html"
+    },
+    {
+      "source": "/profile-card",
+      "destination": "/profile-card/index.html"
+    }
+  ]
+}
